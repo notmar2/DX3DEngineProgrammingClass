@@ -1,13 +1,13 @@
 #pragma once
-#include"Structs.h"
+#include"Mesh.h"
 #include <map>
 #include <string>
 class AssetManager
 {
-	std::map<std::string, SimpleVertex*> simpleMeshMap;
+	std::map<std::string, Mesh> simpleMeshMap;
 public:
 	AssetManager();
-	void SaveSimpleMesh(std::string meshName, SimpleVertex* mesh);
-	SimpleVertex* LoadSimpleMesh(std::string meshName);
+	void SaveMeshToMeshMap(std::string meshName, Mesh mesh);
+	Mesh* LoadMeshFromMeshMap(std::string meshName);
 };
 

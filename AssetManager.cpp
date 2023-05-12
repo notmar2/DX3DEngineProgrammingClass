@@ -4,10 +4,10 @@ AssetManager::AssetManager() {
 
 }
 
-void AssetManager::SaveSimpleMesh(std::string meshName, SimpleVertex* mesh) {
+void AssetManager::SaveMeshToMeshMap(std::string meshName, Mesh mesh) {
 	simpleMeshMap[meshName] = mesh;
 }
 
-SimpleVertex* AssetManager::LoadSimpleMesh(std::string meshName) {
-	return simpleMeshMap[meshName];
+Mesh* AssetManager::LoadMeshFromMeshMap(std::string meshName) {
+	return &simpleMeshMap[meshName];
 }
