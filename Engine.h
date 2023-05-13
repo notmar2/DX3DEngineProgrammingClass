@@ -1,9 +1,10 @@
 #pragma once
 #include "DEF.h"
-#include "Object.h"
+
+class Object;
+
 class Engine
 {
-	
 public:
 	Engine();
 	HINSTANCE							g_hInst;
@@ -31,7 +32,6 @@ public:
 	XMMATRIX							g_Projection;
 	XMFLOAT4							g_vMeshColor;
 	AssetManager*						assetManager;
-	Object*								objectTest;
 
 	//DXMETHODS
 	HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);

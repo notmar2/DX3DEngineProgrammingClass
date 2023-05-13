@@ -4,12 +4,14 @@ Object::Object() {
 	worldPosition = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	rotation = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	worldMatrix = XMMatrixIdentity();
 }
 
 Object::Object(Mesh& _meshRef) : objectMesh(_meshRef) {
 	worldPosition = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	rotation = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	worldMatrix = XMMatrixIdentity();
 }
 
 Object::Object(Mesh& _meshRef, XMFLOAT3 _worldPosition, XMFLOAT3 _scale, XMFLOAT3 _rotation) :
@@ -18,18 +20,45 @@ Object::Object(Mesh& _meshRef, XMFLOAT3 _worldPosition, XMFLOAT3 _scale, XMFLOAT
 	scale(_scale),
 	rotation(_rotation)
 {
-
+	worldMatrix = XMMatrixIdentity();
 }
 
 void Object::Move(XMFLOAT3 movementVect) {
-
+	worldMatrix = worldMatrix * XMMatrixTranslationFromVector(XMLoadFloat3(&movementVect));
 }
 
-void Object::UpdateSubresources(D3D11_BUFFER_DESC& bd) {
-	// Logica en caso de ser necesario actualizar la informacion de los buffers o crear mas
-}
+void Object::Render(ID3D11Device* &_g_pd3dDevice, ID3D11DeviceContext* &_g_pImmediateContext,ID3D11Buffer* &_g_pVertexBuffer, ID3D11Buffer* &_g_pIndexBuffer) {
+	HRESULT hr;
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(SimpleVertex) * 24;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = objectMesh.getVertexBuffer();
+	hr = _g_pd3dDevice->CreateBuffer(&bd, &InitData, &_g_pVertexBuffer);
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	_g_pImmediateContext->IASetVertexBuffers(0, 1, &_g_pVertexBuffer, &stride, &offset);
 
-void Object::Render() {
-	// En un futuro contendra la logica de cargar los assets y mandarselos al renderizador principal que estara en
-	// El metodo render del engine
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(WORD) * 36;
+	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	InitData.pSysMem = objectMesh.getIndexBuffer();
+	hr = _g_pd3dDevice->CreateBuffer(&bd, &InitData, &_g_pIndexBuffer);
+	_g_pImmediateContext->IASetIndexBuffer(_g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	hr = _g_pd3dDevice->CreateBuffer(&bd, &InitData, &_g_pVertexBuffer);
+
+	_g_pImmediateContext->VSSetShader(g_pVertexShader, NULL, 0);
+	_g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pCBNeverChanges);
+	_g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pCBChangeOnResize);
+	_g_pImmediateContext->VSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
+	_g_pImmediateContext->PSSetShader(g_pPixelShader, NULL, 0);
+	_g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
+	_g_pImmediateContext->PSSetShaderResources(0, 1, &g_pTextureRV);
+	_g_pImmediateContext->PSSetSamplers(0, 1, &g_pSamplerLinear);
+	_g_pImmediateContext->DrawIndexed(36, 0, 0);
 }

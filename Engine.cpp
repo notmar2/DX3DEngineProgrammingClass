@@ -3,6 +3,8 @@
 // Register class and create window
 //--------------------------------------------------------------------------------------
 
+#include "Object.h"
+
 Engine::Engine() :
     g_hInst(NULL),
     g_hWnd(NULL),
@@ -27,7 +29,6 @@ Engine::Engine() :
     g_Projection(XMMatrixIdentity()),
     g_vMeshColor(0.7f, 0.7f, 0.7f, 1.0f){
         assetManager = new AssetManager();
-        objectTest = new Object();
     }
 
 
@@ -324,43 +325,50 @@ HRESULT Engine::InitDevice()
     
     loadBuffers();
     
-    Mesh testMesh(assetManager->LoadMeshFromMeshMap("cube01"));
-    objectTest->setMesh(testMesh);
+    //Mesh test(assetManager->LoadMeshFromMeshMap("cube01"));
     
     D3D11_BUFFER_DESC bd;
-    ZeroMemory(&bd, sizeof(bd));
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(SimpleVertex) * 24;
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bd.CPUAccessFlags = 0;
-    D3D11_SUBRESOURCE_DATA InitData;
-    ZeroMemory(&InitData, sizeof(InitData));
-    InitData.pSysMem = objectTest->getMesh().getVertexBuffer();
+    /*
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(SimpleVertex) * 24;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = test.getVertexBuffer();
+	hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	g_pImmediateContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(WORD) * 36;
+	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	InitData.pSysMem = test.getIndexBuffer();
+	hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pIndexBuffer);
+	g_pImmediateContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
     hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
     if (FAILED(hr))
         return hr;
-
+    */
     // Set vertex buffer
-    UINT stride = sizeof(SimpleVertex);
-    UINT offset = 0;
-    g_pImmediateContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
-
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(WORD) * 36;
-    bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    bd.CPUAccessFlags = 0;
-    InitData.pSysMem = objectTest->getMesh().getIndexBuffer();
-    hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pIndexBuffer);
+    
+    //hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pIndexBuffer);
     if (FAILED(hr))
         return hr;
-
+    
     // Set index buffer
     g_pImmediateContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+    
+
 
     // Set primitive topology
     g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // Create the constant buffers
+    ZeroMemory(&bd, sizeof(bd));
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(CBNeverChanges);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -399,7 +407,7 @@ HRESULT Engine::InitDevice()
         return hr;
 
     // Initialize the world matrices
-    g_World = XMMatrixIdentity();
+    //g_World = XMMatrixIdentity();
 
     // Initialize the view matrix
     XMVECTOR Eye = XMVectorSet(0.0f, 3.0f, -6.0f, 0.0f);
@@ -495,8 +503,12 @@ void Engine::Render()
         t = (dwTimeCur - dwTimeStart) / 1000.0f;
     }
 
+    Mesh testMesh(assetManager->LoadMeshFromMeshMap("cube01"));
+    Object objectTest;
+    objectTest.setMesh(testMesh);
+
     // Rotate cube around the origin
-    g_World = XMMatrixRotationY(t);
+    //g_World = XMMatrixRotationY(t);
 
     // Modify the color
     g_vMeshColor.x = (sinf(t * 1.0f) + 1.0f) * 0.5f;
@@ -518,22 +530,11 @@ void Engine::Render()
     // Update variables that change once per frame
     //
     CBChangesEveryFrame cb;
-    cb.mWorld = XMMatrixTranspose(g_World);
+    cb.mWorld = XMMatrixTranspose(objectTest.getWorldMatrix());
     cb.vMeshColor = g_vMeshColor;
     g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0);
 
-    //
-    // Render the cube
-    //
-    g_pImmediateContext->VSSetShader(g_pVertexShader, NULL, 0);
-    g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pCBNeverChanges);
-    g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pCBChangeOnResize);
-    g_pImmediateContext->VSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, NULL, 0);
-    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
-    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pTextureRV);
-    g_pImmediateContext->PSSetSamplers(0, 1, &g_pSamplerLinear);
-    g_pImmediateContext->DrawIndexed(36, 0, 0);
+    objectTest.Render(g_pd3dDevice, g_pImmediateContext, g_pVertexBuffer, g_pIndexBuffer);
 
     //
     // Present our back buffer to our front buffer

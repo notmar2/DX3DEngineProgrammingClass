@@ -1,11 +1,13 @@
 #pragma once
-#include "DEF.h"
-class Object
+#include "Engine.h"
+class Object : public Engine
 {
 	Mesh objectMesh;
 	XMFLOAT3 worldPosition;
 	XMFLOAT3 scale;
 	XMFLOAT3 rotation;
+
+	XMMATRIX worldMatrix;
 
 public:
 	Object();
@@ -21,9 +23,10 @@ public:
 	XMFLOAT3 getWorldPosition() { return worldPosition; }
 	XMFLOAT3 getScale() { return scale; }
 	XMFLOAT3 getRotation() { return rotation; }
+	int getVertexCount() { return objectMesh.getVertexCount(); }
+	XMMATRIX getWorldMatrix() { return worldMatrix; }
 
 	void Move(XMFLOAT3 movementVect);
-	void UpdateSubresources(D3D11_BUFFER_DESC& bd);
-	void Render();
+	void Render(ID3D11Device* &_g_pd3dDevice, ID3D11DeviceContext* &_g_pImmediateContext, ID3D11Buffer* &_g_pVertexBuffer, ID3D11Buffer* &_g_pIndexBuffer);
 };
 
