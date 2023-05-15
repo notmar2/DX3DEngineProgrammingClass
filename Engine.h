@@ -1,5 +1,5 @@
 #pragma once
-#include "DEF.h"
+#include "Camera.h"
 
 class Object;
 
@@ -32,6 +32,10 @@ public:
 	XMMATRIX							g_Projection;
 	XMFLOAT4							g_vMeshColor;
 	AssetManager*						assetManager;
+	Camera*								mainCamera;
+
+	float camTest;
+	float camTestInc;
 
 	//DXMETHODS
 	HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);

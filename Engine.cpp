@@ -27,8 +27,11 @@ Engine::Engine() :
     g_World(XMMatrixIdentity()),
     g_View(XMMatrixIdentity()),
     g_Projection(XMMatrixIdentity()),
-    g_vMeshColor(0.7f, 0.7f, 0.7f, 1.0f){
+    g_vMeshColor(0.7f, 0.7f, 0.7f, 1.0f),
+    camTest(0.0f),
+    camTestInc(0.01f){
         assetManager = new AssetManager();
+        mainCamera = new Camera(XMVectorSet(0.0f, 3.0f, -6.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
     }
 
 
@@ -325,45 +328,11 @@ HRESULT Engine::InitDevice()
     
     loadBuffers();
     
-    //Mesh test(assetManager->LoadMeshFromMeshMap("cube01"));
-    
     D3D11_BUFFER_DESC bd;
-    /*
-	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(SimpleVertex) * 24;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA InitData;
-	ZeroMemory(&InitData, sizeof(InitData));
-	InitData.pSysMem = test.getVertexBuffer();
-	hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	g_pImmediateContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
-
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(WORD) * 36;
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-	InitData.pSysMem = test.getIndexBuffer();
-	hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pIndexBuffer);
-	g_pImmediateContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-    hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
-    if (FAILED(hr))
-        return hr;
-    */
-    // Set vertex buffer
-    
-    //hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pIndexBuffer);
-    if (FAILED(hr))
-        return hr;
     
     // Set index buffer
     g_pImmediateContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
     
-
-
     // Set primitive topology
     g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -406,18 +375,13 @@ HRESULT Engine::InitDevice()
     if (FAILED(hr))
         return hr;
 
-    // Initialize the world matrices
-    //g_World = XMMatrixIdentity();
-
     // Initialize the view matrix
+    /*
     XMVECTOR Eye = XMVectorSet(0.0f, 3.0f, -6.0f, 0.0f);
     XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
     XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
     g_View = XMMatrixLookAtLH(Eye, At, Up);
-
-    CBNeverChanges cbNeverChanges;
-    cbNeverChanges.mView = XMMatrixTranspose(g_View);
-    g_pImmediateContext->UpdateSubresource(g_pCBNeverChanges, 0, NULL, &cbNeverChanges, 0, 0);
+    */
 
     // Initialize the projection matrix
     g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV4, width / (FLOAT)height, 0.01f, 100.0f);
@@ -503,41 +467,57 @@ void Engine::Render()
         t = (dwTimeCur - dwTimeStart) / 1000.0f;
     }
 
-    Mesh testMesh(assetManager->LoadMeshFromMeshMap("cube01"));
-    Object objectTest;
-    objectTest.setMesh(testMesh);
-
-    // Rotate cube around the origin
-    //g_World = XMMatrixRotationY(t);
-
     // Modify the color
     g_vMeshColor.x = (sinf(t * 1.0f) + 1.0f) * 0.5f;
     g_vMeshColor.y = (cosf(t * 3.0f) + 1.0f) * 0.5f;
     g_vMeshColor.z = (sinf(t * 5.0f) + 1.0f) * 0.5f;
 
-    //
-    // Clear the back buffer
-    //
     float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; // red, green, blue, alpha
     g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
-    //
-    // Clear the depth buffer to 1.0 (max depth)
-    //
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    //
-    // Update variables that change once per frame
-    //
+    Mesh testMesh(assetManager->LoadMeshFromMeshMap("cube01"));
+    Object objectTest;
+    objectTest.setMesh(testMesh);
+    Object objectTest2;
+    objectTest2.setMesh(testMesh);
+
     CBChangesEveryFrame cb;
     cb.mWorld = XMMatrixTranspose(objectTest.getWorldMatrix());
     cb.vMeshColor = g_vMeshColor;
     g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0);
+    g_pImmediateContext->VSSetShader(g_pVertexShader, NULL, 0);
+    g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pCBNeverChanges);
+    g_pImmediateContext->VSSetConstantBuffers(1, 1, &g_pCBChangeOnResize);
+    g_pImmediateContext->VSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
+    g_pImmediateContext->PSSetShader(g_pPixelShader, NULL, 0);
+    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pCBChangesEveryFrame);
+    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pTextureRV);
+    g_pImmediateContext->PSSetSamplers(0, 1, &g_pSamplerLinear);
+
+    //
+    // Logica para dibujar distintos elementos
+    //
+
+    if (camTest > 5.0f) {
+        camTestInc *= -1;
+    }
+    else if (camTest < -5.0f) {
+        camTestInc *= -1;
+    }
+    camTest += camTestInc;
+    mainCamera->Move(XMVectorSet(camTest, 3.0f, -6.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+    g_View = XMMatrixLookAtLH(mainCamera->getEye(), mainCamera->getAt(), mainCamera->getUp());
+    CBNeverChanges cbNeverChanges;
+    cbNeverChanges.mView = XMMatrixTranspose(g_View);
+    g_pImmediateContext->UpdateSubresource(g_pCBNeverChanges, 0, NULL, &cbNeverChanges, 0, 0);
 
     objectTest.Render(g_pd3dDevice, g_pImmediateContext, g_pVertexBuffer, g_pIndexBuffer);
+    objectTest2.Move(XMFLOAT3(1.0f, 2.0f, 3.0f));
+    cb.mWorld = XMMatrixTranspose(objectTest2.getWorldMatrix());
+    g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0);
+    objectTest2.Render(g_pd3dDevice, g_pImmediateContext, g_pVertexBuffer, g_pIndexBuffer);
 
-    //
-    // Present our back buffer to our front buffer
-    //
     g_pSwapChain->Present(0, 0);
 }
