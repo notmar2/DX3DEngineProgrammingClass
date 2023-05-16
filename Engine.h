@@ -1,5 +1,6 @@
 #pragma once
 #include "Camera.h"
+#include "EngineGUI.h"
 
 class Object;
 
@@ -33,6 +34,7 @@ public:
 	XMFLOAT4							g_vMeshColor;
 	AssetManager*						assetManager;
 	Camera*								mainCamera;
+	EngineGUI*							gui;
 
 	float camTest;
 	float camTestInc;
@@ -47,5 +49,6 @@ public:
 	
 	//CUSTOMETHODS
 	void loadBuffers();
+	void onResize(int width, int height);
 };
 

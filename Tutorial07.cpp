@@ -37,6 +37,11 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
             TranslateMessage( &msg );
             DispatchMessage( &msg );
         }
+        else if (PeekMessage(&msg, NULL, 0, 0, WM_SIZE)) {
+            int width = LOWORD(msg.lParam);
+            int height = HIWORD(msg.lParam);
+            engine.onResize(width, height);
+        }
         else
         {
             engine.Render();
